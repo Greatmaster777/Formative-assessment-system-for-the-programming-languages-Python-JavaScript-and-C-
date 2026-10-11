@@ -1,11 +1,11 @@
 {
   "version": 1,
+  "time_limit_minutes": 15,
   "submit_dir": "",
   "tasks": [
     {
       "title": "Самопознание",
-      "max_points": 10,
-      "time_limit_minutes": 16,
+      "max_points": 4,
       "forbidden": [
         "for",
         "while"
@@ -41,6 +41,73 @@
         }
       ],
       "image": "images/task_1791624284_WhatsApp Image 2026-.jpeg"
+    },
+    {
+      "title": "Цистерна чокопааааааааааая",
+      "max_points": 10,
+      "forbidden": [
+        "while",
+        "for"
+      ],
+      "tests": [
+        {
+          "input": "aaaaaaaaaaaa",
+          "output": "yes"
+        },
+        {
+          "input": "bbbbbbbbbbb",
+          "output": "yes"
+        },
+        {
+          "input": "rjgoiergier",
+          "output": "no"
+        },
+        {
+          "input": "Windows",
+          "output": "no"
+        },
+        {
+          "input": "AAAAAAAAAAA",
+          "output": "yes"
+        },
+        {
+          "input": "IIIIIIIIII",
+          "output": "yes"
+        },
+        {
+          "input": "лепркшгерпшгке",
+          "output": "no"
+        },
+        {
+          "input": "ЦЦЦЦЦЦЦЦЦЦЦЦЦ",
+          "output": "yes"
+        }
+      ],
+      "image": "images/task_1791730116_WhatsApp Image 2026-.jpeg"
+    },
+    {
+      "title": "Треугольны цифери",
+      "max_points": 10,
+      "forbidden": [],
+      "tests": [
+        {
+          "input": "12\n9\n15",
+          "output": "yes"
+        },
+        {
+          "input": "1\n2\n3",
+          "output": "no"
+        },
+        {
+          "input": "4\n3\n7858575",
+          "output": "no"
+        },
+        {
+          "input": "1\n2\n86745648",
+          "output": "no"
+        }
+      ],
+      "image": "images/task_1791730243_WhatsApp Image 2026-.jpeg"
     }
   ]
 }

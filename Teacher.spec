@@ -1,12 +1,15 @@
 # -*- mode: python ; coding: utf-8 -*-
 
+from PyInstaller.utils.hooks import collect_all
+
+openpyxl_datas, openpyxl_binaries, openpyxl_hiddenimports = collect_all('openpyxl')
 
 a = Analysis(
     ['teacher.py'],
     pathex=[],
-    binaries=[],
-    datas=[],
-    hiddenimports=[],
+    binaries=openpyxl_binaries,
+    datas=openpyxl_datas,
+    hiddenimports=openpyxl_hiddenimports,
     hookspath=[],
     hooksconfig={},
     runtime_hooks=[],

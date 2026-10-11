@@ -1,5 +1,5 @@
-
 import json
+import os
 import re
 import sys
 import shutil
@@ -8,6 +8,8 @@ import tkinter as tk
 from pathlib import Path
 from tkinter import filedialog, messagebox, ttk
 
+import exporter  
+
 try:
     from PIL import Image, ImageTk
     HAS_PIL = True
@@ -15,7 +17,7 @@ except ImportError:
     HAS_PIL = False
 
 BASE = (Path(sys.executable).resolve().parent if getattr(sys, "frozen", False)
-        else Path(__file__).resolve().parent)  # у .exe — папка с самим exe
+        else Path(__file__).resolve().parent)  
 TASKS_FILE = BASE / "tasks.json"
 IMG_DIR = BASE / "images"
 MAX_TASKS = 5
@@ -69,6 +71,7 @@ def make_text(parent, height=8, font=("Consolas", 11)):
 
 
 def parse_tests(text):
+    
     tests = []
     blocks = re.split(r"(?m)^[ \t]*===[ \t]*$", text.replace("\r\n", "\n"))
     for n, block in enumerate(b for b in blocks if b.strip()):
@@ -76,6 +79,9 @@ def parse_tests(text):
         sep = next((i for i, ln in enumerate(lines) if ln.strip() == "---"), None)
         if sep is None:
             raise ValueError(f"в тесте №{n + 1} нет строки-разделителя ---")
+        if any(ln.strip() == "---" for ln in lines[sep + 1:]):
+            raise ValueError(f"в тесте №{n + 1} больше одного разделителя ---: "
+                             "между тестами должна стоять строка ===")
         inp = "\n".join(lines[:sep]).strip("\n")
         out = "\n".join(lines[sep + 1:]).strip("\n")
         if not out.strip():
@@ -112,7 +118,7 @@ TESTS_HINT = (
 class TeacherApp:
     def __init__(self, root):
         self.root = root
-        root.title("Панель Учителя — олимпиада")
+        root.title("Панель Учителя — ФО")
         root.geometry("1100x760")
         root.minsize(980, 680)
         apply_theme(root)
@@ -123,29 +129,37 @@ class TeacherApp:
 
         self.title_var = tk.StringVar()
         self.points_var = tk.StringVar(value="10")
-        self.time_limit_var = tk.StringVar(value="0")
         self.forb_var = tk.StringVar()
+        self.time_var = tk.StringVar(value="0")
+        self.submit_var = tk.StringVar()
         self.image_rel = ""
-        self.submit_dir_var = tk.StringVar()
-        self.settings = {}
 
         self._build()
         self._load_existing()
 
-    # ---------- интерфейс ----------
+    
     def _build(self):
         top = ttk.Frame(self.root)
         top.pack(fill="x", padx=20, pady=(16, 8))
         ttk.Label(top, text="Панель Учителя", style="Title.TLabel").pack(side="left")
         ttk.Label(top, text=f"  до {MAX_TASKS} задач · до {MAX_TESTS} тестов на задачу",
                   style="Muted.TLabel").pack(side="left", pady=(6, 0))
+        ttk.Entry(top, textvariable=self.time_var, width=6).pack(side="right")
+        ttk.Label(top, text="Время на ФО, мин (0 — без ограничения):").pack(side="right", padx=(0, 8))
+
+        sub = ttk.Frame(self.root)
+        sub.pack(fill="x", padx=20, pady=(0, 4))
+        ttk.Button(sub, text="Обзор…", command=self.choose_submit_dir).pack(side="right")
+        ttk.Label(sub, text="Папка сдачи (общая папка для работ учеников, необязательно):",
+                  style="Muted.TLabel").pack(side="left")
+        ttk.Entry(sub, textvariable=self.submit_var).pack(side="left", fill="x", expand=True, padx=10)
 
         body = ttk.Frame(self.root)
         body.pack(fill="both", expand=True, padx=20, pady=8)
         body.columnconfigure(1, weight=1)
         body.rowconfigure(0, weight=1)
 
-        # левая колонка — список задач
+        
         left = ttk.Frame(body, style="Panel.TFrame", padding=12)
         left.grid(row=0, column=0, sticky="ns", padx=(0, 14))
         self.count_lbl = ttk.Label(left, text="Задачи", style="Panel.TLabel", font=("Segoe UI", 11, "bold"))
@@ -159,12 +173,12 @@ class TeacherApp:
         ttk.Button(left, text="＋  Добавить задачу", command=self.add_task).pack(fill="x", pady=(12, 6))
         ttk.Button(left, text="Удалить задачу", style="Danger.TButton", command=self.delete_task).pack(fill="x")
 
-        # правая колонка — форма
+        
         right = ttk.Frame(body, style="Panel.TFrame", padding=16)
         right.grid(row=0, column=1, sticky="nsew")
         right.columnconfigure(1, weight=1)
         right.columnconfigure(2, weight=0)
-        right.rowconfigure(5, weight=1)
+        right.rowconfigure(4, weight=1)
 
         ttk.Label(right, text="Название", style="Panel.TLabel").grid(row=0, column=0, sticky="w", pady=6)
         ttk.Entry(right, textvariable=self.title_var).grid(row=0, column=1, sticky="ew", padx=(12, 0), pady=6)
@@ -172,26 +186,21 @@ class TeacherApp:
         ttk.Label(right, text="Макс. баллы", style="Panel.TLabel").grid(row=1, column=0, sticky="w", pady=6)
         ttk.Entry(right, textvariable=self.points_var, width=10).grid(row=1, column=1, sticky="w", padx=(12, 0), pady=6)
 
-        ttk.Label(right, text="Общий лимит, мин\n(0 — без лимита)", style="Panel.TLabel").grid(
-            row=2, column=0, sticky="w", pady=6)
-        ttk.Entry(right, textvariable=self.time_limit_var, width=10).grid(
-            row=2, column=1, sticky="w", padx=(12, 0), pady=6)
-
-        ttk.Label(right, text="Запрещённые слова", style="Panel.TLabel").grid(row=3, column=0, sticky="w", pady=6)
-        ttk.Entry(right, textvariable=self.forb_var).grid(row=3, column=1, sticky="ew", padx=(12, 0), pady=6)
+        ttk.Label(right, text="Запрещённые слова", style="Panel.TLabel").grid(row=2, column=0, sticky="w", pady=6)
+        ttk.Entry(right, textvariable=self.forb_var).grid(row=2, column=1, sticky="ew", padx=(12, 0), pady=6)
         ttk.Label(right, text="через запятую: if, while, for", style="Panel.TLabel",
-                  foreground=C["muted"]).grid(row=4, column=1, sticky="w", padx=(12, 0))
+                  foreground=C["muted"]).grid(row=3, column=1, sticky="w", padx=(12, 0))
 
-        ttk.Label(right, text="Тесты", style="Panel.TLabel").grid(row=5, column=0, sticky="nw", pady=(10, 0))
+        ttk.Label(right, text="Тесты", style="Panel.TLabel").grid(row=4, column=0, sticky="nw", pady=(10, 0))
         tframe, self.tests_txt = make_text(right, height=10)
-        tframe.grid(row=5, column=1, sticky="nsew", padx=(12, 0), pady=(10, 0))
+        tframe.grid(row=4, column=1, sticky="nsew", padx=(12, 0), pady=(10, 0))
         ttk.Label(right, text=TESTS_HINT, style="Panel.TLabel", foreground=C["muted"],
-                  justify="left").grid(row=5, column=2, sticky="nw", padx=(14, 0), pady=(10, 0))
+                  justify="left").grid(row=4, column=2, sticky="nw", padx=(14, 0), pady=(10, 0))
 
         ttk.Label(right, text="Фото условия\n(обязательно)", style="Panel.TLabel").grid(
-            row=6, column=0, sticky="nw", pady=(14, 0))
+            row=5, column=0, sticky="nw", pady=(14, 0))
         imgbox = ttk.Frame(right, style="Panel.TFrame")
-        imgbox.grid(row=6, column=1, columnspan=2, sticky="w", padx=(12, 0), pady=(14, 0))
+        imgbox.grid(row=5, column=1, columnspan=2, sticky="w", padx=(12, 0), pady=(14, 0))
         self.preview = tk.Label(imgbox, text="Нет изображения", bg=C["editor"], fg=C["muted"],
                                 width=44, height=9, relief="flat")
         self.preview.pack(side="left")
@@ -201,20 +210,15 @@ class TeacherApp:
         self.img_name_lbl = ttk.Label(btns, text="", style="Panel.TLabel", foreground=C["muted"], wraplength=240)
         self.img_name_lbl.pack(anchor="w", pady=8)
 
-        submit = ttk.Frame(self.root)
-        submit.pack(fill="x", padx=20, pady=(8, 0))
-        ttk.Label(submit, text="Папка для отчётов:", style="Muted.TLabel").pack(side="left")
-        ttk.Entry(submit, textvariable=self.submit_dir_var).pack(side="left", fill="x", expand=True, padx=8)
-        ttk.Button(submit, text="Выбрать…", command=self.choose_submit_dir).pack(side="left")
-
         bottom = ttk.Frame(self.root)
-        bottom.pack(fill="x", padx=20, pady=(4, 12))
+        bottom.pack(fill="x", padx=20, pady=(8, 16))
         self.status = ttk.Label(bottom, text="", style="Muted.TLabel")
         self.status.pack(side="left")
         ttk.Button(bottom, text="💾  Сохранить в tasks.json", style="Accent.TButton",
                    command=self.save_all).pack(side="right")
+        ttk.Button(bottom, text="📊  Собрать итоги (Excel/CSV)", command=self.build_summary).pack(side="right", padx=10)
 
-
+    
     def _blank(self):
         return {"title": "Новая задача", "points": "10", "forbidden": "", "tests": "", "image": ""}
 
@@ -222,9 +226,8 @@ class TeacherApp:
         if TASKS_FILE.exists():
             try:
                 data = json.loads(TASKS_FILE.read_text(encoding="utf-8"))
-                self.settings = {k: v for k, v in data.items() if k not in ("version", "tasks")}
-                self.submit_dir_var.set(str(data.get("submit_dir", "") or ""))
-                self.time_limit_var.set(str(data.get("time_limit_minutes", 0)))
+                self.time_var.set(str(data.get("time_limit_minutes", 0)))
+                self.submit_var.set(str(data.get("submit_dir", "") or ""))
                 for t in data.get("tasks", [])[:MAX_TASKS]:
                     self.drafts.append({
                         "title": t.get("title", ""),
@@ -278,7 +281,7 @@ class TeacherApp:
         self.image_rel = d["image"] if d else ""
         self._show_preview()
 
-    # ---------- события ----------
+    
     def _on_select(self, _e):
         sel = self.listbox.curselection()
         if not sel or sel[0] == self.cur:
@@ -330,11 +333,6 @@ class TeacherApp:
         self.image_rel = f"images/{dst.name}"
         self._show_preview()
 
-    def choose_submit_dir(self):
-        path = filedialog.askdirectory(title="Папка для автоматической сдачи отчётов")
-        if path:
-            self.submit_dir_var.set(path)
-
     def _show_preview(self):
         self.preview_photo = None
         path = BASE / self.image_rel if self.image_rel else None
@@ -356,19 +354,45 @@ class TeacherApp:
         except Exception as e:
             self.preview.config(image="", text=f"Не удалось открыть:\n{e}", width=44, height=9)
 
-    # ---------- сохранение ----------
+    
+    def choose_submit_dir(self):
+        start = self.submit_var.get().strip()
+        path = filedialog.askdirectory(title="Папка сдачи", initialdir=start if start and Path(start).is_dir() else str(BASE))
+        if path:
+            self.submit_var.set(path)
+
+    def build_summary(self):
+       
+        start = self.submit_var.get().strip()
+        if not start or not Path(start).is_dir():
+            start = str(BASE / "reports") if (BASE / "reports").is_dir() else str(BASE)
+        folder = filedialog.askdirectory(title="Папка с результатами учеников (где лежат result_*.json)", initialdir=start)
+        if not folder:
+            return
+        try:
+            rows, problems = exporter.collect_results(folder)
+            if not rows:
+                messagebox.showwarning("Итоги", "В выбранной папке нет файлов result_*.json.\n"
+                                                "Их создаёт student.py, когда ученик сдаёт работу.")
+                return
+            files, warns = exporter.write_summaries(rows, folder)
+        except OSError as e:
+            messagebox.showerror("Итоги", f"Не удалось записать файлы:\n{e}")
+            return
+        lines = [f"Учеников в списке: {len(rows)}", f"Групп: {len({r['group'] for r in rows})}", "",
+                 "Созданы файлы:"] + [f"   {Path(f).name}" for f in files] + ["", f"Папка: {folder}"]
+        if problems or warns:
+            lines += ["", "Внимание:"] + [f"   {p}" for p in problems + warns]
+        messagebox.showinfo("Итоги готовы", "\n".join(lines))
+        self.status.config(text=f"✔ Итоги: {len(rows)} учеников → {Path(folder).name}", foreground=C["ok"])
+        if hasattr(os, "startfile") and messagebox.askyesno("Итоги", "Открыть папку с файлами?"):
+            os.startfile(folder)
+
+    
     def save_all(self):
         self._store_form()
         if not self.drafts:
             messagebox.showwarning("Нет задач", "Добавьте хотя бы одну задачу.")
-            return
-        try:
-            total_minutes = int(self.time_limit_var.get().strip())
-        except ValueError:
-            messagebox.showerror("Проверьте данные", "Общий лимит времени должен быть целым числом минут.")
-            return
-        if total_minutes < 0:
-            messagebox.showerror("Проверьте данные", "Общий лимит времени не может быть отрицательным.")
             return
         tasks = []
         for i, d in enumerate(self.drafts, 1):
@@ -399,19 +423,21 @@ class TeacherApp:
                 "image": d["image"],
             })
         try:
-            data = {
-                **self.settings,
-                "version": 1,
-                "time_limit_minutes": total_minutes,
-                "submit_dir": self.submit_dir_var.get().strip(),
-                "tasks": tasks,
-            }
-            TASKS_FILE.write_text(json.dumps(data, ensure_ascii=False, indent=2),
+            minutes = int(self.time_var.get().strip() or "0")
+            if minutes < 0:
+                raise ValueError
+        except ValueError:
+            messagebox.showerror("Проверьте данные", "Время должно быть целым числом минут (0 — без ограничения).")
+            return
+        try:
+            TASKS_FILE.write_text(json.dumps({"version": 1, "time_limit_minutes": minutes,
+                                              "submit_dir": self.submit_var.get().strip(), "tasks": tasks},
+                                             ensure_ascii=False, indent=2),
                                   encoding="utf-8")
         except OSError as e:
             messagebox.showerror("Ошибка записи", str(e))
             return
-        self.status.config(text=f"✔ Сохранено задач: {len(tasks)} → {TASKS_FILE.name}", foreground=C["ok"])
+        self.status.config(text=f"✔ Сохранено задач: {len(tasks)}, время: {minutes or 'без ограничения'} → {TASKS_FILE.name}", foreground=C["ok"])
 
 
 def main():

@@ -1,0 +1,34 @@
+{
+  "version": 1,
+  "name": "Коданиди Даниил Дмитриевич",
+  "group": "МФИ 31",
+  "finished": "2026-10-11T21:16:25",
+  "reason": "сдано учеником",
+  "solved_count": 3,
+  "total_tasks": 3,
+  "score": 7,
+  "max_score": 10,
+  "tasks": [
+    {
+      "title": "Самопознание",
+      "solved": true,
+      "lang": "Python",
+      "score": 4,
+      "max_points": 4
+    },
+    {
+      "title": "Цистерна чокопааааааааааая",
+      "solved": true,
+      "lang": "Python",
+      "score": 10,
+      "max_points": 10
+    },
+    {
+      "title": "Треугольны цифери",
+      "solved": true,
+      "lang": "Python",
+      "score": 10,
+      "max_points": 10
+    }
+  ]
+}
