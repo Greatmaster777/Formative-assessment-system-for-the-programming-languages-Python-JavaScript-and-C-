@@ -3,9 +3,5 @@
 *.jpg
 *.jpeg
 
-
-reports/
-**/reports/
-
-
+dist/images/
 dist/reports/
