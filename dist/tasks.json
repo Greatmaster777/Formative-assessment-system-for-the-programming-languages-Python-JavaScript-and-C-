@@ -1,0 +1,46 @@
+{
+  "version": 1,
+  "submit_dir": "",
+  "tasks": [
+    {
+      "title": "Самопознание",
+      "max_points": 10,
+      "time_limit_minutes": 16,
+      "forbidden": [
+        "for",
+        "while"
+      ],
+      "tests": [
+        {
+          "input": "76",
+          "output": "7>6"
+        },
+        {
+          "input": "44",
+          "output": "4=4"
+        },
+        {
+          "input": "56",
+          "output": "5<6"
+        },
+        {
+          "input": "67",
+          "output": "6<7"
+        },
+        {
+          "input": "88",
+          "output": "8=8"
+        },
+        {
+          "input": "34",
+          "output": "3<4"
+        },
+        {
+          "input": "11",
+          "output": "1=1"
+        }
+      ],
+      "image": "images/task_1791624284_WhatsApp Image 2026-.jpeg"
+    }
+  ]
+}
