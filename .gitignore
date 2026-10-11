@@ -1,4 +1,11 @@
+
 *.png
 *.jpg
+*.jpeg
+
+
 reports/
-images/
+**/reports/
+
+
+dist/reports/
