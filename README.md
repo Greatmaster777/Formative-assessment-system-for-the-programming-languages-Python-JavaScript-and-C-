@@ -68,8 +68,8 @@ To recompile .exe files using PyInstaller:
 
 DOS
 # Build Teacher binary
-python -m PyInstaller --onefile --noconsole teacher.py
+python -m PyInstaller --onefile --windowed --name Teacher teacher.py
 
 # Build Student binary
-python -m PyInstaller --onefile --noconsole student.py
+python -m PyInstaller --onefile --windowed --name Student student.py
 The output executables will be generated inside the dist/ directory.
