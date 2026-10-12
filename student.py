@@ -34,6 +34,7 @@ BASE = (Path(sys.executable).resolve().parent if getattr(sys, "frozen", False)
 TASKS_FILE = BASE / "tasks.json"
 REPORTS_DIR = BASE / "reports"        
 SESSIONS_FILE = BASE / "sessions.json"  
+MAX_TASKS = 10
 TIME_LIMIT = 3.0          
 COMPILE_LIMIT = 20.0      
 OUTPUT_LIMIT = 1_000_000  
@@ -316,7 +317,7 @@ def load_tasks():
     except Exception:
         return []
     tasks = []
-    for t in data.get("tasks", [])[:5]:
+    for t in data.get("tasks", [])[:MAX_TASKS]:
         tasks.append({
             "title": str(t.get("title", "Без названия")),
             "max_points": int(t.get("max_points", 0)),
