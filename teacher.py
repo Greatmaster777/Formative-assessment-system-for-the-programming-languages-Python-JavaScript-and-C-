@@ -20,7 +20,7 @@ BASE = (Path(sys.executable).resolve().parent if getattr(sys, "frozen", False)
         else Path(__file__).resolve().parent)  
 TASKS_FILE = BASE / "tasks.json"
 IMG_DIR = BASE / "images"
-MAX_TASKS = 5
+MAX_TASKS = 10
 MAX_TESTS = 20
 
 C = dict(
